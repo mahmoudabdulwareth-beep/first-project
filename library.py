@@ -12,7 +12,26 @@ def hash_password(password):
 
 
 # Function to register a new user
-def register_user(username, password):
+def register_user(username, password) -> tuple [bool,list[str]]:
+    errors =[]
+    if len(password)<8 :
+        errors.append("password should have at least 8 characters")
+    if not any(c.isupper() for c in password):# check if the password has atleast one capital letter
+        errors.append("password should include at least one capital letter")
+    if not any(c.islower() for c in password):
+        errors.append("password should include at least one small letter")
+    if not any(c.isdigit() for c in password ):
+        errors.append("password should include at least one digit")
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password):
+            errors.append("Password must include at least one special character")
+    if password == username:
+        errors.append("password should not be the same as username")
+    if username.lower() in password.lower():# check if the username is in the password
+        errors.append("password should not contain the username")
+
+    if errors:
+        return (False, errors)
+
     conn = sqlite3.connect("library.db")
     cursor = conn.cursor()
 
@@ -21,7 +40,7 @@ def register_user(username, password):
     if cursor.fetchone():
         print("Username already exists!")
         conn.close()
-        return False
+        return (False, ["Username already exists!"])
 
     # Hash the password before saving
     hashed_password = hash_password(password)
@@ -32,7 +51,7 @@ def register_user(username, password):
     conn.close()
 
     print("User registered successfully!")
-    return True
+    return (True, [])
 
 
 # Function to verify password
@@ -286,12 +305,14 @@ class LibraryGUI:
                 messagebox.showerror("Error", "Passwords do not match!")
                 return
 
-            if register_user(username, password):
-                messagebox.showinfo("Success", "Registration successful! Please login.")
+            success, errors = register_user(username, password)
+
+            if success:
+                messagebox.showinfo("Success", "Registration successful!")
                 self.login_screen()
             else:
-                messagebox.showerror("Error", "Username already exists!")
-
+                error_msg = "\n".join(f"• {e}" for e in errors)
+                messagebox.showerror("Registration Failed", error_msg)
         # Buttons
         button_frame = tk.Frame(container, bg=self.colors['background'])
         button_frame.pack(pady=20)
